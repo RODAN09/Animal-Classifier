@@ -80,10 +80,8 @@ uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
 # =========================================================
 if uploaded_file is not None:
     try:
-        # Open image and convert to RGB
-        image = Image.open(uploaded_file)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
+        # Open and convert image to RGB
+        image = Image.open(uploaded_file).convert("RGB")
 
         # Layout: left image, right prediction
         col1, col2 = st.columns([1, 1])
@@ -93,9 +91,9 @@ if uploaded_file is not None:
             st.image(image, caption="📷 Uploaded Image", use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # Preprocess image
+        # Resize and convert to numpy array
         img = image.resize((224, 224))
-        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array = np.array(img)  # ensures shape (224,224,3)
         img_array = np.expand_dims(img_array, axis=0)
         img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
 
