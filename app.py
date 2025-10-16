@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# 🎨 CUSTOM STYLES (Glass + Gradient + Columns)
+# 🎨 CUSTOM STYLES
 # =========================================================
 st.markdown("""
 <style>
@@ -26,62 +26,31 @@ html, body, [class*="css"]  {
     color: #F5F5F5;
 }
 
-h1 {
-    text-align: center;
-    color: #F5F5F5;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
+h1 { text-align:center; color:#F5F5F5; font-weight:700; letter-spacing:1px; }
 
 .upload-box {
     background: rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 20px;
-    text-align: center;
-    border: 2px dashed rgba(255,255,255,0.25);
+    border-radius: 20px; padding: 20px;
+    text-align: center; border: 2px dashed rgba(255,255,255,0.25);
     transition: 0.3s;
 }
-.upload-box:hover {
-    border-color: #8E2DE2;
-    box-shadow: 0 0 25px rgba(142,45,226,0.4);
-}
+.upload-box:hover { border-color: #8E2DE2; box-shadow: 0 0 25px rgba(142,45,226,0.4); }
 
-.image-card {
-    background: rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 20px;
+.image-card, .prediction-card {
+    background: rgba(255,255,255,0.08); border-radius: 20px; padding: 20px;
     box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-    border: 1px solid rgba(255,255,255,0.18);
-    backdrop-filter: blur(10px);
-    animation: fadeIn 1.2s ease;
-    text-align: center;
+    border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(10px);
+    animation: fadeIn 1.2s ease; text-align: center;
 }
+.prediction-card { padding: 40px; }
+.prediction-card h2 { color: #A29BFE; font-weight:600; }
+.prediction-card h1 { color: #00FFA3; font-size:2.2em; font-weight:700; }
 
-.prediction-card {
-    background: rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-    border: 1px solid rgba(255,255,255,0.18);
-    backdrop-filter: blur(10px);
-    animation: fadeIn 1.2s ease;
-    text-align: center;
-}
-.prediction-card h2 {
-    color: #A29BFE;
-    font-weight: 600;
-}
-.prediction-card h1 {
-    color: #00FFA3;
-    font-size: 2.2em;
-    font-weight: 700;
-}
-
-footer {visibility: hidden;}
+footer {visibility:hidden;}
 
 @keyframes fadeIn {
-  from {opacity: 0; transform: translateY(20px);}
-  to {opacity: 1; transform: translateY(0);}
+  from {opacity:0; transform:translateY(20px);}
+  to {opacity:1; transform:translateY(0);}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -91,9 +60,7 @@ footer {visibility: hidden;}
 # =========================================================
 st.markdown("<h1>🐾 Animal Image Classifier</h1>", unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align:center; font-size:18px;'>"
-    "Upload an animal image on the left — the AI will predict it on the right 🦊"
-    "</p>",
+    "<p style='text-align:center; font-size:18px;'>Upload an animal image on the left — the AI will predict it on the right 🦊</p>",
     unsafe_allow_html=True
 )
 
@@ -122,12 +89,15 @@ st.markdown("<div class='upload-box'>📸 <b>Select an image (JPG, PNG)</b></div
 uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
 
 # =========================================================
-# 🧩 MAIN CONTENT (LEFT: Image | RIGHT: Prediction)
+# 🧩 MAIN CONTENT
 # =========================================================
 if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
+    # Open image and ensure RGB
+    image = Image.open(uploaded_file)
+    if image.mode != "RGB":
+        image = image.convert("RGB")
 
-    # Split layout
+    # Layout: left image, right prediction
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -135,12 +105,13 @@ if uploaded_file is not None:
         st.image(image, caption="📷 Uploaded Image", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Preprocess for prediction
+    # Preprocess image
     img = image.resize((224, 224))
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
 
+    # Predict
     predictions = model.predict(img_array)
     score = tf.nn.softmax(predictions[0])
     pred_class = CLASS_NAMES[np.argmax(score)]
