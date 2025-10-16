@@ -3,6 +3,7 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import os
 
 # =========================================================
 # 🧠 PAGE CONFIGURATION
@@ -19,39 +20,16 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
-html, body, [class*="css"]  {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
-    color: #F5F5F5;
-}
-
+html, body, [class*="css"]  { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%); color: #F5F5F5; }
 h1 { text-align:center; color:#F5F5F5; font-weight:700; letter-spacing:1px; }
-
-.upload-box {
-    background: rgba(255,255,255,0.08);
-    border-radius: 20px; padding: 20px;
-    text-align: center; border: 2px dashed rgba(255,255,255,0.25);
-    transition: 0.3s;
-}
+.upload-box { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 20px; text-align: center; border: 2px dashed rgba(255,255,255,0.25); transition: 0.3s; }
 .upload-box:hover { border-color: #8E2DE2; box-shadow: 0 0 25px rgba(142,45,226,0.4); }
-
-.image-card, .prediction-card {
-    background: rgba(255,255,255,0.08); border-radius: 20px; padding: 20px;
-    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-    border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(10px);
-    animation: fadeIn 1.2s ease; text-align: center;
-}
+.image-card, .prediction-card { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 20px; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37); border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(10px); animation: fadeIn 1.2s ease; text-align: center; }
 .prediction-card { padding: 40px; }
 .prediction-card h2 { color: #A29BFE; font-weight:600; }
 .prediction-card h1 { color: #00FFA3; font-size:2.2em; font-weight:700; }
-
 footer {visibility:hidden;}
-
-@keyframes fadeIn {
-  from {opacity:0; transform:translateY(20px);}
-  to {opacity:1; transform:translateY(0);}
-}
+@keyframes fadeIn { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,10 +46,19 @@ st.markdown(
 # 🧠 LOAD MODEL
 # =========================================================
 @st.cache_resource
-def load_model():
-    return tf.keras.models.load_model("animal_classifier_model.keras")
+def load_model(path="animal_classifier_model.keras"):
+    if not os.path.exists(path):
+        st.error(f"❌ Model file not found: {path}")
+        return None
+    try:
+        return tf.keras.models.load_model(path)
+    except Exception as e:
+        st.error(f"❌ Failed to load model: {e}")
+        return None
 
 model = load_model()
+if model is None:
+    st.stop()
 
 # =========================================================
 # 🐯 CLASS LABELS
@@ -92,44 +79,48 @@ uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
 # 🧩 MAIN CONTENT
 # =========================================================
 if uploaded_file is not None:
-    # Open image and ensure RGB
-    image = Image.open(uploaded_file)
-    if image.mode != "RGB":
-        image = image.convert("RGB")
+    try:
+        # Open image and convert to RGB
+        image = Image.open(uploaded_file)
+        if image.mode != "RGB":
+            image = image.convert("RGB")
 
-    # Layout: left image, right prediction
-    col1, col2 = st.columns([1, 1])
+        # Layout: left image, right prediction
+        col1, col2 = st.columns([1, 1])
 
-    with col1:
-        st.markdown("<div class='image-card'>", unsafe_allow_html=True)
-        st.image(image, caption="📷 Uploaded Image", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        with col1:
+            st.markdown("<div class='image-card'>", unsafe_allow_html=True)
+            st.image(image, caption="📷 Uploaded Image", use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    # Preprocess image
-    img = image.resize((224, 224))
-    img_array = tf.keras.preprocessing.image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
+        # Preprocess image
+        img = image.resize((224, 224))
+        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
 
-    # Predict
-    predictions = model.predict(img_array)
-    score = tf.nn.softmax(predictions[0])
-    pred_class = CLASS_NAMES[np.argmax(score)]
-    confidence = 100 * np.max(score)
+        # Predict
+        predictions = model.predict(img_array)
+        score = tf.nn.softmax(predictions[0])
+        pred_class = CLASS_NAMES[np.argmax(score)]
+        confidence = 100 * np.max(score)
 
-    with col2:
-        st.markdown(f"""
-        <div class="prediction-card">
-            <h2>🧠 Predicted Animal</h2>
-            <h1>{pred_class}</h1>
-            <p style="margin-top:10px;"><b>Confidence:</b> {confidence:.2f}%</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.progress(float(confidence) / 100)
-        st.caption("🎯 Model trained using EfficientNetB0 (ImageNet pretrained).")
+        with col2:
+            st.markdown(f"""
+            <div class="prediction-card">
+                <h2>🧠 Predicted Animal</h2>
+                <h1>{pred_class}</h1>
+                <p style="margin-top:10px;"><b>Confidence:</b> {confidence:.2f}%</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.progress(float(confidence) / 100)
+            st.caption("🎯 Model trained using EfficientNetB0 (ImageNet pretrained).")
 
-    st.divider()
-    st.success("🎉 Upload another image to classify again!")
+        st.divider()
+        st.success("🎉 Upload another image to classify again!")
+
+    except Exception as e:
+        st.error(f"❌ Error processing image: {e}")
 
 else:
     st.info("⬆️ Upload an animal image above to start prediction.")
