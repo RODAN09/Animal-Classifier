@@ -4,103 +4,161 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# Page setup
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="🐾")
+# =========================================================
+# 🧠 PAGE CONFIGURATION
+# =========================================================
+st.set_page_config(
+    page_title="🐾 Animal Classifier | AI Vision",
+    page_icon="🐾",
+    layout="wide"
+)
 
-# Advanced CSS for cards and badges
+# =========================================================
+# 🎨 CUSTOM STYLES (Glass + Gradient + Columns)
+# =========================================================
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+html, body, [class*="css"]  {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    color: #F5F5F5;
+}
+
 h1 {
-    text-align:center;
-    color:#6A0DAD;
-    font-family:'Segoe UI', sans-serif;
+    text-align: center;
+    color: #F5F5F5;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.upload-box {
+    background: rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    border: 2px dashed rgba(255,255,255,0.25);
+    transition: 0.3s;
+}
+.upload-box:hover {
+    border-color: #8E2DE2;
+    box-shadow: 0 0 25px rgba(142,45,226,0.4);
+}
+
+.image-card {
+    background: rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(10px);
+    animation: fadeIn 1.2s ease;
+    text-align: center;
 }
 
 .prediction-card {
-    background-color:#F3F4F6;
-    border-radius:15px;
-    padding:20px;
-    margin-top:20px;
-    text-align:center;
-    box-shadow:0 8px 20px rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(10px);
+    animation: fadeIn 1.2s ease;
+    text-align: center;
+}
+.prediction-card h2 {
+    color: #A29BFE;
+    font-weight: 600;
+}
+.prediction-card h1 {
+    color: #00FFA3;
+    font-size: 2.2em;
+    font-weight: 700;
 }
 
-.animal-badge {
-    display:inline-block;
-    background-color:#E0E7FF;
-    color:#1E3A8A;
-    padding:5px 12px;
-    border-radius:12px;
-    margin:4px;
-    font-weight:bold;
-}
-.animal-badge.predicted {
-    background-color:#6A0DAD;
-    color:white;
+footer {visibility: hidden;}
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(20px);}
+  to {opacity: 1; transform: translateY(0);}
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Title
-st.markdown("<h1>🐾 Animal Image Classification</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Upload an image and the AI will predict the animal!</p>", unsafe_allow_html=True)
+# =========================================================
+# 🦁 TITLE & INTRO
+# =========================================================
+st.markdown("<h1>🐾 Animal Image Classifier</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<p style='text-align:center; font-size:18px;'>"
+    "Upload an animal image on the left — the AI will predict it on the right 🦊"
+    "</p>",
+    unsafe_allow_html=True
+)
 
-# Load model
+# =========================================================
+# 🧠 LOAD MODEL
+# =========================================================
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("animal_classifier_model.h5")
+    return tf.keras.models.load_model("animal_classifier_model.keras")
 
 model = load_model()
 
-# Classes
-CLASS_NAMES = ['Bear', 'Bird', 'Cat', 'Cow', 'Deer', 'Dog', 'Dolphin',
-               'Elephant', 'Giraffe', 'Horse', 'Kangaroo', 'Lion',
-               'Panda', 'Tiger', 'Zebra']
+# =========================================================
+# 🐯 CLASS LABELS
+# =========================================================
+CLASS_NAMES = [
+    'Bear', 'Bird', 'Cat', 'Cow', 'Deer', 'Dog', 'Dolphin',
+    'Elephant', 'Giraffe', 'Horse', 'Kangaroo', 'Lion',
+    'Panda', 'Tiger', 'Zebra'
+]
 
-# File uploader
-uploaded_file = st.file_uploader("📸 Upload an image...", type=["jpg", "jpeg", "png"])
+# =========================================================
+# 📤 FILE UPLOADER
+# =========================================================
+st.markdown("<div class='upload-box'>📸 <b>Select an image (JPG, PNG)</b></div>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
+# =========================================================
+# 🧩 MAIN CONTENT (LEFT: Image | RIGHT: Prediction)
+# =========================================================
+if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
-    
-    # Columns for image and prediction
-    col1, col2 = st.columns([1,1])
-    
+
+    # Split layout
+    col1, col2 = st.columns([1, 1])
+
     with col1:
-        st.image(image, use_column_width=True, caption="Uploaded Image")
-    
-    # Preprocess
-    img = image.resize((224,224))
+        st.markdown("<div class='image-card'>", unsafe_allow_html=True)
+        st.image(image, caption="📷 Uploaded Image", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Preprocess for prediction
+    img = image.resize((224, 224))
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
-    
-    # Prediction
-    preds = model.predict(img_array)
-    score = tf.nn.softmax(preds[0])
-    pred_idx = np.argmax(score)
-    pred_class = CLASS_NAMES[pred_idx]
-    confidence = float(np.max(score) * 100)
-    
+
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+    pred_class = CLASS_NAMES[np.argmax(score)]
+    confidence = 100 * np.max(score)
+
     with col2:
         st.markdown(f"""
         <div class="prediction-card">
-            <h2>🧠 Predicted Animal:</h2>
-            <h1 style="color:#6A0DAD;">{pred_class}</h1>
-            <h3>Confidence: {confidence:.2f}%</h3>
+            <h2>🧠 Predicted Animal</h2>
+            <h1>{pred_class}</h1>
+            <p style="margin-top:10px;"><b>Confidence:</b> {confidence:.2f}%</p>
         </div>
         """, unsafe_allow_html=True)
-        st.progress(confidence/100)
-    
-    # Show all animals and highlight predicted one
-    st.markdown("### Possible Animals Model Can Predict:")
-    badges_html = ""
-    for cls in CLASS_NAMES:
-        if cls == pred_class:
-            badges_html += f'<span class="animal-badge predicted">{cls}</span>'
-        else:
-            badges_html += f'<span class="animal-badge">{cls}</span>'
-    st.markdown(badges_html, unsafe_allow_html=True)
-    
+        st.progress(float(confidence) / 100)
+        st.caption("🎯 Model trained using EfficientNetB0 (ImageNet pretrained).")
+
     st.divider()
-    st.success("🎉 Upload another image to test the model again!")
+    st.success("🎉 Upload another image to classify again!")
+
+else:
+    st.info("⬆️ Upload an animal image above to start prediction.")
