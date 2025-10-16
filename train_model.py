@@ -67,7 +67,7 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 # ✅ Train model
-history = model.fit(train_ds, validation_data=val_ds, epochs=10)
+history = model.fit(train_ds, validation_data=val_ds, epochs=50)
 
 # ✅ Fine-tune top layers (optional)
 base_model.trainable = True
@@ -79,8 +79,8 @@ model.compile(optimizer=tf.keras.optimizers.Adam(1e-4),
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-history_finetune = model.fit(train_ds, validation_data=val_ds, epochs=5)
+history_finetune = model.fit(train_ds, validation_data=val_ds, epochs=50)
 
 # ✅ Save model in TF format (no .h5 issues)
-model.save("animal_classifier_model")
+model.save("animal_classifier_model.keras")
 print("✅ Model saved successfully as 'animal_classifier_model/'")
